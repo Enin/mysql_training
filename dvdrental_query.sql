@@ -17,7 +17,6 @@ select first_name, last_name
 from customer
 order by 1, 2 desc; -- 들어온 순서대로 숫자로 컬럼을 지정할 수 도 있음.
 
-
 -- select distinct 중복제거 옵션
 select distinct bcolor -- 해당 컬럼에 중복값이 있을경우 중복을 제거. null 도 표시됨.
 from t1
@@ -130,5 +129,93 @@ FROM customer c
 WHERE EMAIL LIKE '%@%'
 			AND email NOT LIKE '@%'
 			AND email NOT LIKE '%@' ;
+
+
+		
+		
+-- 조인 실습
+		
+select *
+from employees e ;
+
+SELECT C.CUSTOMER_ID , C.FIRST_NAME , C.LAST_NAME , C.EMAIL , P.AMOUNT, P.PAYMENT_DATE
+FROM CUSTOMER C 
+INNER JOIN PAYMENT P 
+ON C.CUSTOMER_ID = P.CUSTOMER_ID ;
+
+SELECT C.CUSTOMER_ID , C.FIRST_NAME , C.LAST_NAME , C.EMAIL , P.AMOUNT, P.PAYMENT_DATE
+FROM CUSTOMER C 
+INNER JOIN PAYMENT P 
+ON C.CUSTOMER_ID = P.CUSTOMER_ID
+WHERE C.CUSTOMER_ID = 2 ; -- 조건문 추가
+
+SELECT C.CUSTOMER_ID , C.FIRST_NAME , C.LAST_NAME , C.EMAIL , P.AMOUNT, P.PAYMENT_DATE, S.STAFF_ID
+FROM customer c 
+INNER JOIN payment p 
+ON c.customer_id = p.customer_id 
+INNER JOIN staff s 
+ON p.staff_id = s.staff_id ;
+
+SELECT A.ID AS ID_A
+	  ,A.FRUIT AS FRUIT_A
+	  ,B.ID AS ID_B
+	  ,B.FRUIT AS FRUIT_B
+FROM BASKET_A A LEFT OUTER JOIN BASKET_B B
+ON A.FRUIT = B.FRUIT ;
+
+SELECT A.ID AS ID_A
+	  ,A.FRUIT AS FRUIT_A
+	  ,B.ID AS ID_B
+	  ,B.FRUIT AS FRUIT_B
+FROM BASKET_A A LEFT OUTER JOIN BASKET_B B
+ON A.FRUIT = B.FRUIT
+WHERE B.ID IS NULL; -- LEFT ONLY를 구할때. B를 기준으로 A에 없는 속성(NULL)을 갖는 값을 찾아서 오직 A에 속하는 값을 구한다.
+
+SELECT *
+FROM employee e ;
+
+SELECT E.FIRST_NAME ||' '|| E.LAST_NAME AS EMPLOYEE
+	,  M.FIRST_NAME ||' '|| M.LAST_NAME AS MANAGER
+FROM EMPLOYEE E 
+INNER JOIN EMPLOYEE M -- 별칭을 다르게 하여 INNER JOIN을 수행.
+ON M.EMPLOYEE_ID = E.MANAGER_ID -- 이때 NULL 값이 포함되지 않는다.
+ORDER BY MANAGER ;
+
+SELECT E.FIRST_NAME ||' '|| E.LAST_NAME AS EMPLOYEE
+	,  M.FIRST_NAME ||' '|| M.LAST_NAME AS MANAGER
+FROM EMPLOYEE E 
+LEFT JOIN EMPLOYEE M -- LEFT OUTER JOIN을 사용하여 NULL 값까지 포함시킨다.
+ON M.EMPLOYEE_ID = E.MANAGER_ID -- 
+ORDER BY MANAGER ;
+
+-- 부정형 조건
+SELECT F.TITLE, F2.TITLE, F.LENGTH
+FROM FILM F 
+INNER JOIN FILM F2 
+ON F.FILM_ID <> F2.FILM_ID
+AND F.LENGTH = F2.LENGTH ;
+
+-- 동일 테이블 > 각각 다른집합 구성 (셀프조인) > 그안에서 원하는 정보를 추출.
+-- 테이블 1개만 사용할 경우 물리적으로 불가능한 조회방법이 될 수 있다.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
