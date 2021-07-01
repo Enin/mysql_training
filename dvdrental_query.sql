@@ -198,22 +198,119 @@ AND F.LENGTH = F2.LENGTH ;
 -- 동일 테이블 > 각각 다른집합 구성 (셀프조인) > 그안에서 원하는 정보를 추출.
 -- 테이블 1개만 사용할 경우 물리적으로 불가능한 조회방법이 될 수 있다.
 
+SELECT A.ID AS ID_A
+	  ,A.FRUIT AS FRUIT_A
+	  ,B.ID AS ID_B
+	  ,B.FRUIT AS FRUIT_B
+FROM BASKET_A A
+FULL OUTER JOIN basket_b B
+ON A.FRUIT = B.FRUIT ;
+
+SELECT A.ID AS ID_A
+	  ,A.FRUIT AS FRUIT_A
+	  ,B.ID AS ID_B
+	  ,B.FRUIT AS FRUIT_B
+FROM BASKET_A A
+FULL OUTER JOIN basket_b B
+ON A.FRUIT = B.FRUIT
+WHERE A.ID IS NULL
+OR B.ID IS NULL ;
+
+
+SELECT e.employee_name , d.department_name 
+FROM employees e 
+FULL OUTER JOIN departments d 
+ON D.DEPARTMENT_ID = e.department_id ; -- 풀아우터조인으로 출력.
+
+SELECT e.employee_name , d.department_name 
+FROM employees e 
+FULL OUTER JOIN departments d 
+ON D.DEPARTMENT_ID = e.department_id
+WHERE e.employee_name is NULL ; -- 왼쪽이 NULL인 조건 = RIGHT ONLY 조건
+
+SELECT *
+FROM cross_t1 ct 
+CROSS JOIN cross_t2 ct2 ;
+
+SELECT * 
+FROM cross_t1 ct , cross_t2 ct2 ;
+
+SELECT *
+FROM products p 
+NATURAL JOIN categories c ;
+
+SELECT CUSTOMER_ID -- 중복값을 제거한 customer_id 를 출력.
+FROM payment p 
+GROUP BY customer_id ;
+
+SELECT CUSTOMER_ID
+	 , SUM(amount) AS AMOUNT_SUM -- 집계함수 SUM으로 AMOUNT의 합계를 계산
+FROM payment p 
+GROUP BY customer_id -- CUSTOMER_ID를 기준으로 AMOUNT의 SUM을 계산
+ORDER BY SUM(AMOUNT) DESC; -- 합계치를 기준으로 가장 높은 AMOUNT를 갖는 ID가 위로 오게 수행.
+
+SELECT STAFF_ID
+	 , COUNT(PAYMENT_ID) AS COUNT_
+FROM payment p 
+GROUP BY staff_id ;      
+
+
+SELECT CUSTOMER_ID
+	 , SUM(amount) AS AMOUNT_SUM -- 집계함수 SUM으로 AMOUNT의 합계를 계산
+FROM payment p 
+GROUP BY customer_id -- CUSTOMER_ID를 기준으로 AMOUNT의 SUM을 계산
+HAVING SUM(AMOUNT) > 200 -- GROUP BY 바로 뒤에 등장하여 조건에 맞는 GROUP 결과를 출력.
+ORDER BY SUM(AMOUNT) DESC ; -- ORDER BY는 가장 아래에 가야한다.
+
+
+SELECT p.customer_id , c.email 
+	 , SUM(p.amount) AS AMOUNT_SUM
+FROM payment p , customer c 
+WHERE p.customer_id = c.customer_id 
+GROUP BY p.customer_id , c.email 
+HAVING SUM(p.amount) > 200 ;
+
+
+SELECT * FROM sales2007_1 s 
+UNION
+SELECT * FROM sales2007_2 s2 ;
+
+SELECT NAME FROM sales2007_1 s 
+UNION
+SELECT NAME FROM sales2007_2 s2 ; -- NAME을 기준으로 중복이 제거됨.
+
+SELECT AMOUNT FROM sales2007_1 s 
+UNION
+SELECT amount FROM sales2007_2 s2 ;
+
+SELECT NAME FROM sales2007_1 s 
+UNION ALL
+SELECT NAME FROM sales2007_2 s2 ;
 
 
 
+SELECT * FROM keys k 
+INTERSECT
+SELECT * FROM hipos h ; -- 교집합이 출력. 실무에서 많이 쓰이진 않음. 대신 INNER JOIN을 사용
 
 
 
+SELECT DISTINCT i.film_id , f.title 
+FROM inventory i 
+INNER JOIN film f -- 재고가 있는 영화를 찾고(INVENTORY에 들어있고) 
+ON f.film_id = i.film_id 
+ORDER BY f.title ; -- TITLE 순으로 출력.
+-- 필름과 인벤토리는 1:N관계 -> 두 테이블 조인시 영화 1개당 여러 재고가 나옴. -> 중복 제거를 위해 DISTINCT 사용.
 
-
-
-
-
-
-
-
-
-
+-- 재고가 존재하지 않는 영화를 추출하는 방법? 필름-재고가존재 = 재고가 없음
+SELECT f2.film_id , f2.title -- 전체
+FROM film f2
+EXCEPT
+SELECT DISTINCT i.film_id , f.title -- 재고가 있는 필름들을 제외
+FROM inventory i 
+INNER JOIN film f -- 재고가 있는 영화를 찾고(INVENTORY에 들어있고) 
+ON f.film_id = i.film_id 
+ORDER BY title ; -- 엘리어스하면 오류남.
 
 
 
