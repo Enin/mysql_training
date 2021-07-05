@@ -313,6 +313,108 @@ ON f.film_id = i.film_id
 ORDER BY title ; -- 엘리어스하면 오류남.
 
 
+--중첩 서브쿼리
+SELECT f.film_id , f.title, f.rental_rate 
+FROM film f 
+WHERE rental_rate > ( -- 평균값보다 높은 렌탈레이트를 갖는 모든 쿼리를 가져옴
+	SELECT 
+	AVG(rental_rate) -- 렌탈레이트 평균을 구하는 서브쿼리
+	FROM film f2 ) ;
+
+--인라인 뷰 서브쿼리
+SELECT f.film_id , f.title, f.rental_rate 
+FROM film f , ( -- from 절에서 인라인 뷰로 서브쿼리 작성.
+	SELECT AVG(rental_rate) as avg_rental_rate 
+	from film ) f2
+WHERE f.rental_rate > f2.avg_rental_rate ;
+
+-- 스칼라서브쿼리
+SELECT f.film_id , f.title, f.rental_rate 
+FROM (
+	SELECT f.film_id, f.title, f.rental_rate , ( -- 스칼라 서브쿼리. 인라인뷰 내에서 스칼라 값을 갖는 서브쿼리 작성
+		SELECT AVG(f2.rental_rate) from film f2 ) as avg_rental_rate
+	from film f ) f
+where f.rental_rate > f.avg_rental_rate ;
+
+
+-- ANY
+SELECT title , length 
+FROM film f 
+WHERE length >= ANY ( 
+	SELECT MAX(length)
+	FROM film f2 , film_category fc 
+	WHERE f2.film_id = fc.film_id 
+	GROUP BY fc.category_id  ); 
+
+SELECT title , length 
+FROM film f 
+WHERE length = ANY ( -- 정확히 일지하는 값만 출력
+	SELECT MAX(length)
+	FROM film f2 , film_category fc 
+	WHERE f2.film_id = fc.film_id 
+	GROUP BY fc.category_id  ); 
+
+
+SELECT title , length 
+FROM film f 
+WHERE length >= ALL ( -- 서브쿼리를 모두 만족하는 값(제일큰값)을 출력해줌.
+	SELECT MAX(length)
+	FROM film f2 , film_category fc 
+	WHERE f2.film_id = fc.film_id 
+	GROUP BY fc.category_id  ); 
+
+
+SELECT ROUND(AVG(LENGTH), 2)
+FROM film f 
+GROUP BY rating ; -- 평가기준으로 레이팅별 영화길이 평균을 구함.
+
+SELECT title , length 
+FROM film f 
+WHERE length > ALL ( -- 서브쿼리를 모두 만족하는 값(제일큰값기준으로 그 이상)을 출력해줌.
+	SELECT ROUND(AVG(LENGTH), 2) 
+	FROM film 
+	GROUP BY rating) ; -- 평가기준으로 레이팅별 영화길이 평균을 구함. 
+	
+
+-- A, B 집합을 합치면 전체 집합(CUSTOMER)이 나옴.
+SELECT first_name, LAST_NAME -- A집합
+FROM customer c 
+WHERE EXISTS ( -- 서브쿼리 조건이 있으면 출력, 없으면 미출력
+	SELECT 1 -- 있을경우 값을 1
+	FROM payment p 
+	WHERE p.customer_id = c.customer_id -- 지불내역 내에 c.고객이 있는지 확인
+	AND p.amount > 11 ) -- 11달러 이상 소모한 고객만 고름
+ORDER BY first_name , last_name ;
+
+
+SELECT first_name, LAST_NAME -- B집합
+FROM customer c 
+WHERE NOT EXISTS ( -- 없으면 출력, 있으면 미출력
+	SELECT 1
+	FROM payment p 
+	WHERE p.customer_id = c.customer_id -- 지불내역 내에 c.고객이 있는지 확인
+	AND p.amount > 11 ) -- 11달러 이상 소모한 고객만 고름
+ORDER BY first_name , last_name ;
+
+
+-- FILM 테이블을 한번만 스캔하여 결과집합 구하기.
+SELECT DB.FILM_ID, DB.TITLE, DB.RENTAL_RATE
+FROM ( 
+SELECT f.film_id , f.title , f.rental_rate , AVG(f.rental_rate) OVER() as avg_rental_rate 
+FROM film f ) DB -- over 함수로 평균을 포함한 인라인뷰 테이블을 생성.
+WHERE rental_rate > DB.avg_rental_rate ;
+
+-- EXCEPT 연산을 사용하지 않고 재고가 없는 영화를 구하기.
+SELECT FILM_ID, TITLE
+FROM film f 
+WHERE NOT EXISTS ( -- 서브쿼리에 존재하지 않는 값만 not exists로 획득.
+	SELECT 1
+	FROM inventory i 
+	WHERE i.film_id = f.film_id ) -- inventory에 있는 필름을 확인하는 서브쿼리
+ORDER BY title ;
+
+
+
 
 
 
