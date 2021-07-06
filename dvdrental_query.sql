@@ -414,6 +414,95 @@ WHERE NOT EXISTS ( -- 서브쿼리에 존재하지 않는 값만 not exists로 획득.
 ORDER BY title ;
 
 
+SELECT brand, segment, sum(quantity)
+FROM sales s 
+GROUP BY brand , segment -- group by를 사용한 집계.
+union all
+SELECT brand, NULL, sum(quantity)
+FROM sales s 
+GROUP BY brand -- brand 기준 
+union all
+SELECT NULL, segment, sum(quantity)
+FROM sales s 
+GROUP BY segment -- segment 기준
+union all
+SELECT NULL, NULL, sum(quantity)
+FROM sales s  ; -- 그냥 합계 구하는 방법
+-- 위의 방법을 한번에 대기 위해선 union all을 계속 수행해야함.
+-- SQL 복잡, 내용 길어짐, 성능저하, 유지보수에 불편.
+
+-- 이를 grouping set 을 사용하여 간단하게 변경.
+SELECT brand, segment, sum(quantity)
+FROM sales s 
+GROUP BY
+GROUPING SETS ( -- 그룹하고 싶은 조건을 아래에 작성해준다.
+	(BRAND, segment),
+	(BRAND),
+	(segment),
+	());
+
+SELECT GROUPING(BRAND) GROUPING_BRAND, GROUPING(SEGMENT) GROUPING_SEGMENT, -- GROUPING이 사용되었다면 1, 아니면 0인 값을 리턴한다.
+	brand, segment, sum(quantity)
+FROM sales s 
+GROUP BY
+GROUPING SETS ( -- 그룹하고 싶은 조건을 아래에 작성해준다.
+	(BRAND, segment),
+	(BRAND),
+	(segment),
+	());
+
+-- ROLLUP 절
+SELECT brand , segment , SUM(quantity)
+FROM sales s 
+GROUP BY ROLLUP(brand, segment) -- 브랜드, 세그먼트 합계, 브랜드별 합계, 세그먼트별합계, 전체합계 모두 출력
+ORDER BY brand , segment ; -- GROUPING SETS를 전체 조합에 대해 수행한 것과 동일한 결과를 얻을 수 있다.
+
+SELECT brand , SUM(quantity)
+FROM sales s 
+GROUP BY ROLLUP(brand) -- 브랜드별 합계와 전체합계 모두 출력
+ORDER BY brand ;
+
+-- 부분 ROLLUP
+-- 전체 합계는 출력하지 않음.
+SELECT brand , segment , SUM(quantity)
+FROM sales s 
+GROUP BY segment ,
+ROLLUP(brand)
+ORDER BY brand , segment ;
+-- group by 별 합계, rollup 컬럼별 합계 , 전체 합계는 사용하지 않는다.
+
+
+-- CUBE 함수
+SELECT brand , segment , SUM(quantity)
+FROM sales s 
+GROUP BY CUBE( brand, segment)
+ORDER BY brand , segment ;
+-- CUBE = GROUP BY절 합계 + 각 속성별 합계 + 전체 합계
+
+-- 부분 CUBE
+SELECT brand , segment , SUM(quantity)
+FROM sales s 
+GROUP BY brand ,
+	CUBE(segment)
+ORDER BY brand , segment ;
+-- 부분 CUBE = GROUP BY 절 합계 + 맨 앞에 쓴 컬럼(BRAND) 별 합계
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
