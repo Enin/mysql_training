@@ -488,21 +488,103 @@ ORDER BY brand , segment ;
 -- 부분 CUBE = GROUP BY 절 합계 + 맨 앞에 쓴 컬럼(BRAND) 별 합계
 
 
+-- 집계함수
+SELECT COUNT(*) -- 일반 집계함수는 총합값만 나온다.
+FROM product p ;
+
+-- 분석함수 OVER()
+SELECT COUNT(*) OVER() , p.* -- 전체 내용 * 과 함께 COUNT 결과를 출력해준다. 
+FROM product p ;
+
+-- AVG()
+SELECT p.product_name , p.price , pg.group_name , 
+	AVG (price) OVER(PARTITION BY pg.group_name ORDER BY pg.group_name) -- PARTITION BY를 사용하여 나누는 기준을 지정한다.
+FROM product p 
+INNER JOIN product_group pg ON p.group_id = pg.group_id ;
+
+-- 누적 평균 수행방법
+SELECT p.product_name , p.price , pg.group_name , 
+	AVG (price) OVER(PARTITION BY pg.group_name ORDER BY p.price) -- ORDER BY를 기준으로 누적 집계를 수행.
+FROM product p 
+INNER JOIN product_group pg ON p.group_id = pg.group_id ;
 
 
+-- ROW_NUMBER
+SELECT p.product_name , p.price , pg.group_name , 
+	ROW_NUMBER () OVER ( PARTITION BY pg.group_name ORDER BY p.price DESC) -- 가격을 기준으로 GROUP NAME에 대한 순번. 동일값도 순번 나눠짐
+FROM product p 															   -- DESC 로 높은값 부더 순번 정할 수 있음.
+INNER JOIN product_group pg ON p.group_id = pg.group_id ;
+
+-- RANK
+SELECT p.product_name , p.price , pg.group_name , 
+	RANK () OVER ( PARTITION BY pg.group_name ORDER BY p.price DESC) -- 가격을 기준으로 순번 지정. 값이 같다면 동일 순번으로 지정하고 다음을 건너뜀. 1, 1, 3, 4
+FROM product p 	
+INNER JOIN product_group pg ON p.group_id = pg.group_id ;
+
+-- DENSE RANK
+SELECT p.product_name , p.price , pg.group_name , 
+	DENSE_RANK () OVER ( PARTITION BY pg.group_name ORDER BY p.price DESC) -- 값이 같다면 동일 순번으로 지정하고 연속해서 순위지정. 1, 1, 2, 3
+FROM product p 	
+INNER JOIN product_group pg ON p.group_id = pg.group_id ;
 
 
+-- FIRST_VALUE
+SELECT p.product_name , p.price , pg.group_name , 
+	FIRST_VALUE (p.price) OVER ( PARTITION BY pg.group_name ORDER BY p.price DESC) -- OVER 조건을 기준으로 가장 첫번째 p.price 값을 한개씩 출력한다.
+FROM product p 	
+INNER JOIN product_group pg ON p.group_id = pg.group_id ;
+
+-- LAST_VALUE
+SELECT p.product_name , p.price , pg.group_name , 
+	LAST_VALUE (p.price)  									-- 가장 마지막 PRICE 를 출력
+		OVER ( PARTITION BY pg.group_name ORDER BY p.price 	-- OVER 조건을 기준으로 가장 첫번째 p.price 컬럼을 정렬한 값들 중에서
+			RANGE BETWEEN UNBOUNDED PRECEDING 				-- 파티션의 첫번째 ROW 부터
+			AND UNBOUNDED FOLLOWING) 						-- 파티션의 마지막 ROW 까지 범위를 지정. 범위지정하지 않으면 CURRENT ROW가 DEFAULT이므로 값이 전체범위가 아니게됨.
+			AS LOWEST_PRICE_PER_GROUP
+FROM product p 	
+INNER JOIN product_group pg ON p.group_id = pg.group_id ;
 
 
+-- LAG 함수
+SELECT p.product_name , p.price , pg.group_name , 
+	LAG (p.price, 1) OVER ( PARTITION BY pg.group_name ORDER BY p.price ) AS PREV_PRICE , -- LAG(PRICE, N번째 이전행) 사용하여 이전 행 값을 구함.
+	p.price  - LAG(p.price, 1) OVER ( PARTITION BY pg.group_name ORDER BY p.price) AS CUR_PREV_DIFF -- 현재 값 - 이전 값을 계산한 결과값
+FROM product p 	
+INNER JOIN product_group pg ON p.group_id = pg.group_id ;
+
+-- LEAD 함수
+SELECT p.product_name , p.price , pg.group_name , 
+	LEAD (p.price, 1) OVER ( PARTITION BY pg.group_name ORDER BY p.price ) AS PREV_PRICE , -- LEAD(PRICE, N번째 다음행) 사용하여 다음 행 값을 구함.
+	p.price  - LEAD(p.price, 1) OVER ( PARTITION BY pg.group_name ORDER BY p.price) AS CUR_PREV_DIFF -- 현재 값 - 이전 값을 계산한 결과값
+FROM product p 	
+INNER JOIN product_group pg ON p.group_id = pg.group_id ;
 
 
+-- 실습문제 1
+-- RENTAL 테이블 기준 연, 연월, 연월일, 전체 각각을 기준으로 대여가 발생한 횟수를 출력.
 
+SELECT to_char(r.rental_date , 'YYYY') AS YYYY ,
+	to_char(r.rental_date, 'MM') AS MM ,
+	to_char(r.rental_date, 'DD') AS DD,
+	COUNT(r.rental_id) AS CNT
+FROM rental r 
+GROUP BY ROLLUP (
+	to_char(r.rental_date, 'YYYY'),
+	to_char(r.rental_date, 'MM'),
+	to_char(r.rental_date, 'DD') ) ;
 
+-- 실습문제 2
+-- RENTAL 과 CUSTOMER 테이블을 이용하여 가장 많이 RENTAL을 한 고객의 ID, 렌탈 순위, 누적 렌탈 횟수, 이름을 출력하라.
+-- 순위 RANK, 누적 함수 사용
 
-
-
-
-
+SELECT c.customer_id , c.first_name , c.last_name , -- r.customer_id 로 grouping 하면 max(c.first_name), max(C.last_name) 으로 가져올 수 있다.
+	ROW_NUMBER() OVER (ORDER BY COUNT(r.rental_id) DESC) AS RENTAL_RANK ,
+	COUNT(*) AS RENTAL_CNT -- COUNT 쓸려면 무조건 기준 컬럼으로 GROUPING 수행해야함.
+FROM rental r 
+JOIN customer c ON r.customer_id = c.customer_id 
+GROUP BY c.customer_id -- COUNT 에대하여 그룹바이.
+ORDER BY RENTAL_RANK 
+LIMIT 1 ;
 
 
 
