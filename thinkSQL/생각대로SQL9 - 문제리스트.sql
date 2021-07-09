@@ -1,5 +1,15 @@
 문제1번) dvd 대여를 제일 많이한 고객 이름은?   (with 문 활용)	
 
+WITH TB1 AS (
+	SELECT r.customer_id , COUNT (r.rental_id) AS CNT
+	FROM rental r
+	GROUP BY r.customer_id 
+	LIMIT 1	)
+SELECT c.first_name , c.last_name 
+FROM customer c 
+JOIN TB1 ON c.customer_id = TB1.customer_id ;
+
+
 문제2번) 영화 시간 유형 (length_type)에 대한 영화 수를 구하세요.
 영화 상영 시간 유형의 정의는 다음과 같습니다.
 영화 길이 (length) 은 60분 이하 short , 61분 이상 120분 이하 middle , 121 분이상 long 으로 한다. 풀이
@@ -45,6 +55,23 @@ B 등급은 21회 이상 30회 이하
 C 등급은 11회 이상 20회 이하
 D 등급은 10회 이하
 
+WITH TB1 AS (
+	SELECT 'A' AS RATING, 31 CHK1, 999 CHK2 UNION ALL
+	SELECT 'B' AS RATING, 21 CHK1, 30 CHK2 UNION ALL
+	SELECT 'C' AS RATING, 11 CHK1, 20 CHK2 UNION ALL
+	SELECT 'D' AS RATING, 0  CHK1, 10 CHK2 )
+SELECT rating, count(customer_id) as cnt
+FROM (
+	SELECT customer_id , rating
+	FROM (
+		SELECT r.customer_id , COUNT(r.rental_id) AS CNT
+		FROM rental r 
+		GROUP BY r.customer_id ) AS DB	
+	LEFT OUTER JOIN TB1 ON DB.CNT BETWEEN TB1.CHK1 AND TB1.CHK2 ) AS DB 
+GROUP BY rating 
+ORDER BY rating;
+
+
 문제5번) 고객 이름 별로 , flag  를 붙여서 보여주세요. 풀이
 - 고객의 first_name 이름의 첫번째 글자가, A, B,C 에 해당 하는 사람은  각 A,B,C 로 flag 를 붙여주시고 
    A,B,C 에 해당하지 않는 인원에 대해서는 Others 라는 flag 로  붙여주세요.	
@@ -63,6 +90,13 @@ LEFT OUTER JOIN TB1 ON substring(c.first_name, 1, 1) = TB1.CHK1 ;  -- SUBSTRING 
 문제6번) payment 테이블을 기준으로,  2007년 1월~ 3월 까지의 결제일에 해당하며,  staff2번 인원에게 결제를 진행한  결제건에 대해서는, Y 로   
 그 외에 대해서는 N 으로 표기해주세요. with 절을 이용해주세요.	
 
+WITH TB1 AS (
+	SELECT 2 AS STAFF_ID, 'Y' AS FLAG, CAST('2007-01-01 00:00:00' AS TIMESTAMP) AS D1, CAST('2007-03-31 23:59:59' AS TIMESTAMP) AS D2 )
+SELECT p.* , COALESCE (TB1.FLAG, 'N') AS FLAG
+FROM payment p 
+LEFT OUTER JOIN TB1 ON p.staff_id = TB1.STAFF_ID AND p.payment_date BETWEEN TB1.D1 AND TB1.D2 ;
+
+
 
 문제7번) Payement 테이블을 기준으로,  결제에 대한 Quarter 분기를 함께 표기해주세요.
 with 절을 활용해서 풀이해주세요.
@@ -70,6 +104,15 @@ with 절을 활용해서 풀이해주세요.
 4~6월 의 경우 Q2
 7~9월의 경우 Q3
 10~12월의 경우 Q4
+
+WITH TB1 AS (
+	SELECT 1 CHK1, 3 CHK2, 'Q1' QUATERS UNION ALL
+	SELECT 4 CHK1, 6 CHK2, 'Q2' QUATERS UNION ALL
+	SELECT 7 CHK1, 9 CHK2, 'Q3' QUATERS UNION ALL
+	SELECT 10 CHK1, 12 CHK2, 'Q4' QUATERS )
+SELECT p.* , TB1.QUATERS
+FROM payment p 
+LEFT OUTER JOIN TB1 ON CAST(TO_CHAR(p.payment_date, 'MM') AS INT) BETWEEN TB1.CHK1 AND TB1.CHK2 ;
 
 
 문제8번) Rental 테이블을 기준으로,  회수일자에 대한 Quater 분기를 함께 표기해주세요. 풀이
@@ -96,6 +139,18 @@ LEFT OUTER JOIN TB1 ON r.rental_date BETWEEN TB1.CHK1 AND TB1.CHK2 ;
 0~ 500개 의 경우  under_500 
 501~ 3000 개의 경우  under_3000
 3001 ~ 99999 개의 경우  over_3001  
+
+WITH TB1 AS (
+	SELECT 0 CHK1 , 500 CHK2 , 'UNDER_500' FLAG UNION ALL
+	SELECT 501 CHK1 , 3000 CHK2 , 'UNDER_3000' FLAG UNION ALL
+	SELECT 3001 CHK1 , 99999 CHK2 , 'OVER_3001' FLAG )
+SELECT DB.*, TB1.FLAG
+FROM (
+	SELECT r.staff_id , TO_CHAR(r.rental_date, 'mm') as months , count(r.rental_id) as cnt
+	FROM rental r 
+	GROUP BY GROUPING SETS ((r.staff_id , TO_CHAR(r.rental_date, 'mm')))
+	ORDER BY TO_CHAR(r.rental_date, 'mm') ) AS DB
+LEFT OUTER JOIN TB1 ON DB.CNT BETWEEN TB1.CHK1 AND TB1.CHK2 ;
 
 
 문제10번) 직원의 현재 패스워드에 대해서, 새로이  패스워드를 지정하려고 합니다. 풀이
