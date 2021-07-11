@@ -587,5 +587,15 @@ ORDER BY RENTAL_RANK
 LIMIT 1 ;
 
 
+--WITH ¹®
+WITH TMP1 AS(
+SELECT f.film_id , f.title ,
+	( CASE WHEN length < 30 THEN 'SHORT'
+		   WHEN length >= 30 AND length < 90 THEN 'MEDIUM'
+		   WHEN length > 90 THEN 'LONG'
+		   END ) lengths
+FROM film f )
+SELECT * FROM TMP1 WHERE lengths ='LONG';
+
 
 
